@@ -1,85 +1,97 @@
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Shield, Users, Stethoscope } from 'lucide-react';
+import { Shield, Users, Stethoscope, ArrowRight } from 'lucide-react';
 
 export default function UserTypeSelect() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Hero Section */}
-      <div className="gradient-hero px-6 pt-12 pb-16 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="h-16 w-16 rounded-2xl bg-primary-foreground/20 flex items-center justify-center animate-scale-in">
-            <Shield className="h-10 w-10 text-primary-foreground" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-display font-bold text-primary-foreground mb-2 animate-fade-in">
-          Kavach
-        </h1>
-        <p className="text-primary-foreground/80 text-sm animate-fade-in">
-          Protecting Your Child's Health Journey
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-teal-200/30 rounded-full blur-3xl animate-pulse delay-700" />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-6 -mt-8">
-        <div className="bg-card rounded-2xl shadow-lg p-6 animate-slide-up">
-          <h2 className="text-xl font-display font-bold text-foreground text-center mb-2">
-            Welcome!
-          </h2>
-          <p className="text-muted-foreground text-center text-sm mb-6">
-            Please select your role to continue
+      <div className="relative z-10 w-full max-w-6xl px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-12 space-y-4 animate-fade-in">
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-sm mb-4 ring-1 ring-slate-100">
+            <Shield className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
+            Welcome to Kavach
+          </h1>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Your trusted companion for managing vaccinations and health records. <br className="hidden md:block" />
+            Select your role to get started.
           </p>
+        </div>
 
-          <div className="space-y-4">
-            <Card
-              className="p-4 cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200 hover:shadow-md"
-              onClick={() => navigate('/login?role=parent')}
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">Parent / Guardian</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Track your child's vaccinations
-                  </p>
-                </div>
-              </div>
-            </Card>
+        {/* Selection Cards */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Parent Card */}
+          <div
+            onClick={() => navigate('/login?role=parent')}
+            className="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-100 cursor-pointer min-h-[280px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-blue-200 active:scale-[0.98]"
+          >
+            <div className="absolute top-6 right-6 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+              <ArrowRight className="h-6 w-6 text-blue-600" />
+            </div>
 
-            <Card
-              className="p-4 cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200 hover:shadow-md"
-              onClick={() => navigate('/login?role=provider')}
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Stethoscope className="h-6 w-6 text-accent" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">Healthcare Provider</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage patient records
-                  </p>
-                </div>
+            <div className="space-y-6">
+              <div className="h-16 w-16 rounded-2xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-300">
+                <Users className="h-8 w-8 text-blue-600" />
               </div>
-            </Card>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-blue-700 transition-colors">Parent / Guardian</h3>
+                <p className="text-slate-500 leading-relaxed">
+                  Track your child's development, manage vaccination schedules, and receive timely health reminders.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center text-sm font-semibold text-blue-600 group-hover:text-blue-700">
+              <span>Continue as Parent</span>
+            </div>
+          </div>
+
+          {/* Provider Card */}
+          <div
+            onClick={() => navigate('/login?role=provider')}
+            className="group relative bg-white rounded-3xl p-8 shadow-sm border border-slate-100 cursor-pointer min-h-[280px] flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-teal-200 active:scale-[0.98]"
+          >
+            <div className="absolute top-6 right-6 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+              <ArrowRight className="h-6 w-6 text-teal-600" />
+            </div>
+
+            <div className="space-y-6">
+              <div className="h-16 w-16 rounded-2xl bg-teal-50 flex items-center justify-center group-hover:bg-teal-100 transition-colors duration-300">
+                <Stethoscope className="h-8 w-8 text-teal-600" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-teal-700 transition-colors">Healthcare Provider</h3>
+                <p className="text-slate-500 leading-relaxed">
+                  Access patient records, update vaccination statuses, and coordinate care with families efficiently.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-50 flex items-center text-sm font-semibold text-teal-600 group-hover:text-teal-700">
+              <span>Continue as Provider</span>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Button
-              variant="link"
-              className="p-0 h-auto text-primary"
+        {/* Footer */}
+        <div className="mt-12 text-center animate-fade-in delay-200">
+          <p className="text-slate-500">
+            New to Kavach?{' '}
+            <button
               onClick={() => navigate('/signup')}
+              className="font-semibold text-primary hover:text-primary/80 hover:underline transition-all"
             >
-              Sign up
-            </Button>
+              Create an account
+            </button>
           </p>
         </div>
       </div>

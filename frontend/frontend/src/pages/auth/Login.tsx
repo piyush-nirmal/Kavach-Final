@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import { Shield, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
@@ -44,38 +43,37 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="gradient-hero px-6 pt-6 pb-12">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground mb-4"
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <span className="font-display text-2xl font-bold text-primary-foreground">Kavach</span>
-        </div>
-        <p className="text-primary-foreground/80 text-sm">
-          Sign in as {role === 'parent' ? 'Parent / Guardian' : 'Healthcare Provider'}
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50 relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-teal-200/30 rounded-full blur-3xl animate-pulse delay-700" />
       </div>
 
-      {/* Form */}
-      <div className="flex-1 px-6 -mt-6">
-        <Card className="p-6 animate-slide-up">
-          <h2 className="text-xl font-display font-bold text-foreground mb-6">
-            Welcome Back
-          </h2>
+      <div className="relative z-10 w-full max-w-md px-6 py-12">
+        <Button
+          variant="ghost"
+          className="absolute top-4 left-4 md:left-0 md:-top-8 text-slate-500 hover:text-slate-900 hover:bg-white/50"
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-white/20 animate-slide-up">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center p-3 bg-blue-50 rounded-2xl mb-4 group ring-1 ring-blue-100">
+              <Shield className="h-8 w-8 text-primary group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome Back</h2>
+            <p className="text-slate-500 mt-2 text-sm">
+              Sign in as <span className="font-medium text-slate-700">{role === 'parent' ? 'Parent / Guardian' : 'Healthcare Provider'}</span>
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-slate-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -83,11 +81,14 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-white/50 border-slate-200 focus:border-primary focus:ring-primary/20 transition-all rounded-xl h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password" className="text-slate-700">Password</Label>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -96,34 +97,36 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="bg-white/50 border-slate-200 focus:border-primary focus:ring-primary/20 transition-all rounded-xl h-11 pr-10"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                  className="absolute right-0 top-0 h-11 w-11 text-slate-400 hover:text-slate-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4" />
                   )}
+                </Button>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="p-0 h-auto text-xs text-primary/80 hover:text-primary"
+                >
+                  Forgot password?
                 </Button>
               </div>
             </div>
 
             <Button
-              type="button"
-              variant="link"
-              className="p-0 h-auto text-sm text-primary"
-            >
-              Forgot password?
-            </Button>
-
-            <Button
               type="submit"
-              className="w-full gradient-primary text-primary-foreground"
+              className="w-full h-11 rounded-xl text-base font-medium shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-[1.01] active:scale-[0.99]"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -137,15 +140,15 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-8 text-center pt-6 border-t border-slate-100">
+            <p className="text-sm text-slate-500">
               Don't have an account?{' '}
-              <Link to={`/signup?role=${role}`} className="text-primary font-medium">
+              <Link to={`/signup?role=${role}`} className="text-primary font-semibold hover:underline">
                 Sign up
               </Link>
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

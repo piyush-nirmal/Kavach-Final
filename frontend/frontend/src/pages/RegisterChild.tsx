@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,13 +8,20 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, ArrowRight, Baby, User, FileText, Check, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 
 type Step = 1 | 2 | 3;
 
 export default function RegisterChild() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const childId = searchParams.get('childId');
+  const isEditing = !!childId;
+
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,6 +38,57 @@ export default function RegisterChild() {
   // Document
   const [birthCertificate, setBirthCertificate] = useState<File | null>(null);
 
+  // Fetch existing data if editing
+  useEffect(() => {
+    const fetchChildData = async () => {
+      if (!childId || !user) return;
+      setIsLoading(true);
+      try {
+        const docRef = doc(db, 'children', childId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setChildName(data.name || '');
+          setDateOfBirth(data.dateOfBirth || '');
+          setGender(data.gender || 'male');
+
+          // Ideally parent info should also be fetched/pre-filled if available in child doc or user doc
+          // For now, pre-fill with user data if available
+          setParentName(user.name || '');
+          setParentPhone(user.phone || '');
+          setParentEmail(user.email || '');
+        } else {
+          toast({
+            title: "Error",
+            description: "Child record not found.",
+            variant: "destructive"
+          });
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error("Error fetching child data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load child data.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isEditing) {
+      fetchChildData();
+    } else if (user) {
+      // Pre-fill parent info from logged in user for new registrations too
+      setParentName(user.name || '');
+      setParentPhone(user.phone || '');
+      setParentEmail(user.email || '');
+    }
+  }, [childId, user, toast, navigate, isEditing]);
+
+
   const steps = [
     { number: 1, title: 'Child Info', icon: Baby },
     { number: 2, title: 'Parent Info', icon: User },
@@ -45,39 +103,59 @@ export default function RegisterChild() {
     if (step > 1) setStep((step - 1) as Step);
   };
 
-  const { user } = useAuth();
-
   const handleSubmit = async () => {
     if (!user) return;
     setIsLoading(true);
 
     try {
-      const { collection, addDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-
       const childData = {
         name: childName,
         dateOfBirth: dateOfBirth,
         gender: gender,
         parentId: user.id,
-        createdAt: new Date().toISOString(),
-        // In a real app, upload birth certificate to storage and save URL
-        birthCertificateUrl: null
+        // Only update createdAt if new? No, usually keep original.
+        // UpdatedAt could be added.
+        ...(isEditing ? { updatedAt: new Date().toISOString() } : { createdAt: new Date().toISOString() }),
+        ...(isEditing ? { updatedAt: new Date().toISOString() } : { createdAt: new Date().toISOString() }),
       };
 
-      await addDoc(collection(db, 'children'), childData);
+      if (birthCertificate) {
+        try {
+          const storageRef = ref(storage, `birth_certificates/${user.id}/${Date.now()}_${birthCertificate.name}`);
+          const snapshot = await uploadBytes(storageRef, birthCertificate);
+          const url = await getDownloadURL(snapshot.ref);
+          // @ts-ignore
+          childData.birthCertificateUrl = url;
+        } catch (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          toast({
+            title: "Upload Failed",
+            description: "Failed to upload birth certificate, but continuing with registration.",
+            variant: "destructive"
+          });
+        }
+      }
 
-      toast({
-        title: 'Child Registered!',
-        description: `${childName} has been successfully registered.`,
-      });
+      if (isEditing && childId) {
+        await updateDoc(doc(db, 'children', childId), childData);
+        toast({
+          title: 'Child Updated!',
+          description: `${childName}'s information has been updated.`,
+        });
+      } else {
+        await addDoc(collection(db, 'children'), childData);
+        toast({
+          title: 'Child Registered!',
+          description: `${childName} has been successfully registered.`,
+        });
+      }
 
       navigate('/dashboard');
     } catch (error) {
-      console.error("Error adding document: ", error);
+      console.error("Error saving document: ", error);
       toast({
         title: 'Error',
-        description: 'Failed to register child. Please try again.',
+        description: `Failed to ${isEditing ? 'update' : 'register'} child. Please try again.`,
         variant: 'destructive'
       });
     } finally {
@@ -90,6 +168,10 @@ export default function RegisterChild() {
       setBirthCertificate(e.target.files[0]);
     }
   };
+
+  if (isLoading && isEditing && step === 1 && !childName) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,10 +186,10 @@ export default function RegisterChild() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-display font-bold text-primary-foreground">
-          Register Child
+          {isEditing ? 'Edit Child' : 'Register Child'}
         </h1>
         <p className="text-primary-foreground/80 text-sm">
-          Add your newborn's information
+          {isEditing ? 'Update your child\'s information' : 'Add your newborn\'s information'}
         </p>
       </div>
 
@@ -325,12 +407,12 @@ export default function RegisterChild() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Registering...
+                    {isEditing ? 'Updating...' : 'Registering...'}
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-2" />
-                    Complete Registration
+                    {isEditing ? 'Update Child' : 'Complete Registration'}
                   </>
                 )}
               </Button>

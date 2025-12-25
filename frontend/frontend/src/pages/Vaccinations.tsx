@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +18,14 @@ import { vaccinationSchedule } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, getDoc } from 'firebase/firestore';
 import { Child, VaccinationRecord } from '@/types';
 
 export default function Vaccinations() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const childIdParam = searchParams.get('childId');
 
   const [children, setChildren] = useState<Child[]>([]);
   const [records, setRecords] = useState<VaccinationRecord[]>([]);
@@ -42,10 +45,21 @@ export default function Vaccinations() {
       if (!user) return;
 
       try {
-        // Fetch Children
-        const childrenQ = query(collection(db, 'children'), where('parentId', '==', user.id));
-        const childrenSnapshot = await getDocs(childrenQ);
-        const childrenData = childrenSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Child));
+        let childrenData: Child[] = [];
+
+        if (childIdParam) {
+          // Fetch specific child
+          const childDoc = await getDoc(doc(db, 'children', childIdParam));
+          if (childDoc.exists()) {
+            childrenData = [{ id: childDoc.id, ...childDoc.data() } as Child];
+          }
+        } else {
+          // Fetch Children for parent
+          const childrenQ = query(collection(db, 'children'), where('parentId', '==', user.id));
+          const childrenSnapshot = await getDocs(childrenQ);
+          childrenData = childrenSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Child));
+        }
+
         setChildren(childrenData);
 
         if (childrenData.length > 0) {
@@ -63,7 +77,7 @@ export default function Vaccinations() {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, childIdParam]);
 
   const child = children[0]; // Simplification for now
 
@@ -127,6 +141,12 @@ export default function Vaccinations() {
     );
   }
 
+  const openAddDialog = (prefillName?: string) => {
+    setVaccineName(prefillName || '');
+    setVaccineDate(new Date().toISOString().split('T')[0]);
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="px-4 py-6 space-y-6">
       {/* Header */}
@@ -138,7 +158,7 @@ export default function Vaccinations() {
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gradient-primary text-primary-foreground" size="sm">
+            <Button className="gradient-primary text-primary-foreground" size="sm" onClick={() => openAddDialog()}>
               <Plus className="h-4 w-4 mr-1" />
               Add
             </Button>
@@ -253,18 +273,32 @@ export default function Vaccinations() {
                         }`} />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{vaccine.vaccineName}</h4>
-                      <p className="text-sm text-muted-foreground">{vaccine.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Recommended: {vaccine.recommendedAge}
-                      </p>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{vaccine.vaccineName}</h4>
+                          <p className="text-sm text-muted-foreground">{vaccine.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Recommended: {vaccine.recommendedAge}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge
+                            variant={isOverdue ? 'destructive' : isDueSoon ? 'secondary' : 'outline'}
+                            className={`whitespace-nowrap ${isDueSoon && !isOverdue ? 'bg-warning/10 text-warning border-warning/20' : ''}`}
+                          >
+                            {isOverdue ? `${Math.abs(dueDays)}d overdue` : dueDays === 0 ? 'Today' : `${dueDays}d`}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-primary/20 hover:bg-primary/5 text-primary"
+                            onClick={() => openAddDialog(vaccine.vaccineName)}
+                          >
+                            Mark as Done
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <Badge
-                      variant={isOverdue ? 'destructive' : isDueSoon ? 'secondary' : 'outline'}
-                      className={isDueSoon && !isOverdue ? 'bg-warning/10 text-warning border-warning/20' : ''}
-                    >
-                      {isOverdue ? `${Math.abs(dueDays)}d overdue` : dueDays === 0 ? 'Today' : `${dueDays}d`}
-                    </Badge>
                   </div>
                 </Card>
               );

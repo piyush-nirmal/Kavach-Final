@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
@@ -5,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
-  User,
   Baby,
   Phone,
   Mail,
@@ -16,32 +16,58 @@ import {
   Bell,
   HelpCircle,
   FileText,
+  Plus
 } from 'lucide-react';
-import { mockChildren } from '@/data/mockData';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Child } from '@/types';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const child = mockChildren[0];
+  const [children, setChildren] = useState<Child[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChildren = async () => {
+      if (!user) return;
+      try {
+        const q = query(collection(db, 'children'), where('parentId', '==', user.id));
+        const querySnapshot = await getDocs(q);
+        const childrenData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Child));
+        setChildren(childrenData);
+      } catch (error) {
+        console.error("Error fetching children:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChildren();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const menuItems = [
-    { icon: Baby, label: 'My Children', onClick: () => navigate('/register-child') },
-    { icon: Bell, label: 'Notification Settings', onClick: () => {} },
-    { icon: Shield, label: 'Privacy & Security', onClick: () => {} },
-    { icon: FileText, label: 'Terms of Service', onClick: () => {} },
-    { icon: HelpCircle, label: 'Help & Support', onClick: () => {} },
-  ];
 
-  // Calculate child's age
-  const birthDate = new Date(child?.dateOfBirth || '');
-  const today = new Date();
-  const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
-  const ageMonths = Math.floor(ageInDays / 30);
+  const { toast } = useToast();
+
+  const handleFeatureUnavailable = (feature: string) => {
+    toast({
+      title: "Coming Soon",
+      description: `${feature} is currently under development.`,
+    });
+  };
+
+  const menuItems = [
+    { icon: Bell, label: 'Notification Settings', onClick: () => handleFeatureUnavailable('Notification Settings') },
+    { icon: Shield, label: 'Privacy & Security', onClick: () => handleFeatureUnavailable('Privacy & Security') },
+    { icon: FileText, label: 'Terms of Service', onClick: () => handleFeatureUnavailable('Terms of Service') },
+    { icon: HelpCircle, label: 'Help & Support', onClick: () => handleFeatureUnavailable('Help & Support') },
+  ];
 
   return (
     <div className="px-4 py-6 space-y-6">
@@ -75,34 +101,57 @@ export default function Profile() {
           </div>
           <div className="flex items-center gap-3">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{user?.phone || '+91 98765 43210'}</span>
+            <span className="text-sm text-foreground">{user?.phone || 'No phone number'}</span>
           </div>
         </div>
       </Card>
 
-      {/* Child Card */}
-      {child && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display font-bold text-foreground">My Child</h3>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/register-child')}>
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
+      {/* Children Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="font-display font-bold text-foreground">My Children</h3>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/register-child')}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Child
+          </Button>
+        </div>
+
+        {children.length > 0 ? (
+          children.map((child) => {
+            const birthDate = new Date(child.dateOfBirth);
+            const today = new Date();
+            const ageInMonths = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+
+            return (
+              <Card key={child.id} className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
+                      <Baby className="h-6 w-6 text-accent" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground">{child.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {ageInMonths} months old • {child.gender.charAt(0).toUpperCase() + child.gender.slice(1)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/register-child?childId=${child.id}`)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            )
+          })
+        ) : (
+          <Card className="p-6 text-center border-dashed">
+            <p className="text-muted-foreground text-sm mb-3">No children registered yet</p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/register-child')}>
+              Register a Child
             </Button>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-              <Baby className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground">{child.name}</h4>
-              <p className="text-sm text-muted-foreground">
-                {ageMonths} months old • {child.gender.charAt(0).toUpperCase() + child.gender.slice(1)}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
+      </div>
 
       {/* Menu Items */}
       <Card className="divide-y divide-border">
