@@ -5,10 +5,10 @@ import { Button } from "./ui/button";
 
 export function InstallPWA() {
     const [supportsPWA, setSupportsPWA] = useState(false);
-    const [promptInstall, setPromptInstall] = useState<any>(null);
+    const [promptInstall, setPromptInstall] = useState<BeforeInstallPromptEvent | null>(null);
 
     useEffect(() => {
-        const handler = (e: any) => {
+        const handler = (e: BeforeInstallPromptEvent) => {
             e.preventDefault();
             setSupportsPWA(true);
             setPromptInstall(e);

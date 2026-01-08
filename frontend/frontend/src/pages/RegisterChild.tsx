@@ -108,14 +108,13 @@ export default function RegisterChild() {
     setIsLoading(true);
 
     try {
-      const childData = {
+      const childData: { [key: string]: string | undefined } = {
         name: childName,
         dateOfBirth: dateOfBirth,
         gender: gender,
         parentId: user.id,
         // Only update createdAt if new? No, usually keep original.
         // UpdatedAt could be added.
-        ...(isEditing ? { updatedAt: new Date().toISOString() } : { createdAt: new Date().toISOString() }),
         ...(isEditing ? { updatedAt: new Date().toISOString() } : { createdAt: new Date().toISOString() }),
       };
 
@@ -124,7 +123,6 @@ export default function RegisterChild() {
           const storageRef = ref(storage, `birth_certificates/${user.id}/${Date.now()}_${birthCertificate.name}`);
           const snapshot = await uploadBytes(storageRef, birthCertificate);
           const url = await getDownloadURL(snapshot.ref);
-          // @ts-ignore
           childData.birthCertificateUrl = url;
         } catch (uploadError) {
           console.error("Error uploading file:", uploadError);
@@ -153,9 +151,10 @@ export default function RegisterChild() {
       navigate('/dashboard');
     } catch (error) {
       console.error("Error saving document: ", error);
+      const message = error instanceof Error ? error.message : 'Please try again.';
       toast({
         title: 'Error',
-        description: `Failed to ${isEditing ? 'update' : 'register'} child. Please try again.`,
+        description: `Failed to ${isEditing ? 'update' : 'register'} child. ${message}`,
         variant: 'destructive'
       });
     } finally {

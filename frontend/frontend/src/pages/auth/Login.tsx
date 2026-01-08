@@ -31,11 +31,12 @@ export default function Login() {
         description: 'You have successfully logged in.',
       });
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
+      const message = error instanceof Error ? error.message : 'Please check your credentials and try again.';
       toast({
         title: 'Login failed',
-        description: error.message || 'Please check your credentials and try again.',
+        description: message,
         variant: 'destructive',
       });
     } finally {

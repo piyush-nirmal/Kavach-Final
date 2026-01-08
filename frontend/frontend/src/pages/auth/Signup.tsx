@@ -35,11 +35,12 @@ export default function Signup() {
         description: 'Welcome to Kavach.',
       });
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Signup error:', error);
+      const message = error instanceof Error ? error.message : 'Please try again.';
       toast({
         title: 'Signup failed',
-        description: error.message || 'Please try again.',
+        description: message,
         variant: 'destructive',
       });
     } finally {

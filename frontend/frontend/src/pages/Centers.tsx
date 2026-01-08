@@ -5,13 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Phone, Navigation, Search, Locate, Building2 } from 'lucide-react';
 import { mockVaccinationCenters } from '@/data/mockData';
+import { VaccinationCenter } from '@/types';
 import GoogleMapComponent from '@/components/map/GoogleMap';
 
 
 export default function Centers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
-  const [centers, setCenters] = useState(mockVaccinationCenters);
+  const [centers, setCenters] = useState<VaccinationCenter[]>([]);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 

@@ -18,26 +18,40 @@ import {
   Loader2,
   Sparkles
 } from 'lucide-react';
-import { mockNotifications, vaccinationSchedule } from '@/data/mockData';
+import { vaccinationSchedule } from '@/data/mockData';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Child, VaccinationRecord } from '@/types';
 
+interface Appointment {
+  id: string;
+  childId: string;
+  doctorName: string;
+  date: string;
+  time: string;
+  notes?: string;
+}
+
+interface Alert {
+  id: string;
+  isRead: boolean;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  // State for real data
+  const [children, setChildren] = useState<Child[]>([]);
+  const [vaccinationRecords, setVaccinationRecords] = useState<VaccinationRecord[]>([]);
+  const [notifications, setNotifications] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Redirect or Show Provider Dashboard
   if (user?.role === 'provider') {
     return <ProviderDashboard />;
   }
-
-  // State for real data
-  const [children, setChildren] = useState<any[]>([]);
-  const [vaccinationRecords, setVaccinationRecords] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,12 +61,12 @@ export default function Dashboard() {
         // 1. Fetch Children
         const childrenQ = query(collection(db, 'children'), where('parentId', '==', user.id));
         const childrenSnapshot = await getDocs(childrenQ);
-        const childrenData = childrenSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const childrenData = childrenSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Child[];
         setChildren(childrenData);
 
         const childIds = childrenData.map(c => c.id);
-        const alerts: any[] = [];
-        let appointmentsToday: any[] = [];
+        const alerts: Alert[] = [];
+        const appointmentsToday: Appointment[] = [];
 
         // 2. Fetch Data if children exist
         if (childIds.length > 0) {
@@ -62,12 +76,12 @@ export default function Dashboard() {
           const apptSnap = await getDocs(apptQ);
 
           apptSnap.forEach(doc => {
-            const data = doc.data();
+            const data = doc.data() as Omit<Appointment, 'id'>;
             const todayStr = new Date().toISOString().split('T')[0];
 
             // Check for today's appointments
             if (data.date === todayStr) {
-              appointmentsToday.push({ ...data, id: doc.id });
+              appointmentsToday.push({ ...data, id: doc.id } as Appointment);
             }
 
             // Add to alerts if future or today
@@ -83,12 +97,12 @@ export default function Dashboard() {
           // B. Fetch Vaccination Records for ALL children (for notifications)
           const allRecordsQ = query(collection(db, 'vaccination_records'), where('childId', 'in', childIds.slice(0, 10)));
           const allRecordsSnap = await getDocs(allRecordsQ);
-          const allRecords = allRecordsSnap.docs.map(doc => ({ ...doc.data() }));
+          const allRecords = allRecordsSnap.docs.map(doc => ({ ...doc.data() })) as VaccinationRecord[];
 
           // Calculate Vaccine Alerts
-          childrenData.forEach((child: any) => {
-            const childRecords = allRecords.filter((r: any) => r.childId === child.id);
-            const administered = new Set(childRecords.map((r: any) => r.vaccineName));
+          childrenData.forEach((child) => {
+            const childRecords = allRecords.filter((r) => r.childId === child.id);
+            const administered = new Set(childRecords.map((r) => r.vaccineName));
             const birthDate = new Date(child.dateOfBirth);
             const today = new Date();
             const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -106,7 +120,7 @@ export default function Dashboard() {
           // C. Set Vaccination Records for the FIRST child (for Dashboard UI stats)
           if (childrenData.length > 0) {
             const firstChildId = childrenData[0].id;
-            const childRecords = allRecords.filter((r: any) => r.childId === firstChildId);
+            const childRecords = allRecords.filter((r) => r.childId === firstChildId);
             setVaccinationRecords(childRecords);
           }
         }
@@ -218,7 +232,7 @@ export default function Dashboard() {
       )}
 
       {/* Next Vaccine Card */}
-      {nextVaccine && (
+      {child && nextVaccine && (
         <Card className="p-5 border-l-4 border-l-orange-500 animate-slide-up shadow-md bg-white/90" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
@@ -244,88 +258,92 @@ export default function Dashboard() {
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card
-          className="p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up border-0 shadow-md bg-gradient-to-br from-emerald-50 to-teal-50"
-          style={{ animationDelay: '0.15s' }}
-          onClick={() => navigate('/vaccinations')}
-        >
-          <div className="flex flex-col items-center text-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+      {child && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up border-0 shadow-md bg-gradient-to-br from-emerald-50 to-teal-50"
+            style={{ animationDelay: '0.15s' }}
+            onClick={() => navigate('/vaccinations')}
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-emerald-900">{vaccinationRecords.length}</p>
+                <p className="text-xs font-medium text-emerald-600/80 uppercase tracking-wide mt-1">Vaccines Done</p>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold text-emerald-900">{vaccinationRecords.length}</p>
-              <p className="text-xs font-medium text-emerald-600/80 uppercase tracking-wide mt-1">Vaccines Done</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card
-          className="p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up border-0 shadow-md bg-gradient-to-br from-amber-50 to-orange-50"
-          style={{ animationDelay: '0.2s' }}
-          onClick={() => navigate('/notifications')}
-        >
-          <div className="flex flex-col items-center text-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm relative">
-              <Bell className="h-6 w-6 text-amber-500" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
-                  {unreadNotifications}
-                </span>
-              )}
+          <Card
+            className="p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up border-0 shadow-md bg-gradient-to-br from-amber-50 to-orange-50"
+            style={{ animationDelay: '0.2s' }}
+            onClick={() => navigate('/notifications')}
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm relative">
+                <Bell className="h-6 w-6 text-amber-500" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold border-2 border-white">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-amber-900">{unreadNotifications}</p>
+                <p className="text-xs font-medium text-amber-600/80 uppercase tracking-wide mt-1">Alerts</p>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold text-amber-900">{unreadNotifications}</p>
-              <p className="text-xs font-medium text-amber-600/80 uppercase tracking-wide mt-1">Alerts</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
 
       {/* Vaccination Schedule */}
-      <div className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h2 className="text-lg font-bold text-slate-900">Upcoming Schedule</h2>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/vaccinations')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-            View All
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+      {child && (
+        <div className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h2 className="text-lg font-bold text-slate-900">Upcoming Schedule</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/vaccinations')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+              View All
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
 
-        <div className="space-y-3">
-          {vaccinationSchedule
-            .filter(v => !administeredNames.has(v.vaccineName))
-            .slice(0, 3)
-            .map((vaccine, index) => {
-              const dueDays = vaccine.ageInDays - ageInDays;
-              const isPast = dueDays < 0;
-              return (
-                <Card key={vaccine.id} className="p-4 border-slate-100 hover:border-blue-100 hover:shadow-sm transition-all duration-200">
-                  <div className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${isPast ? 'bg-red-50' : 'bg-slate-50'
-                      }`}>
-                      <Calendar className={`h-5 w-5 ${isPast ? 'text-red-500' : 'text-slate-500'}`} />
+          <div className="space-y-3">
+            {vaccinationSchedule
+              .filter(v => !administeredNames.has(v.vaccineName))
+              .slice(0, 3)
+              .map((vaccine, index) => {
+                const dueDays = vaccine.ageInDays - ageInDays;
+                const isPast = dueDays < 0;
+                return (
+                  <Card key={vaccine.id} className="p-4 border-slate-100 hover:border-blue-100 hover:shadow-sm transition-all duration-200">
+                    <div className="flex items-center gap-4">
+                      <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${isPast ? 'bg-red-50' : 'bg-slate-50'
+                        }`}>
+                        <Calendar className={`h-5 w-5 ${isPast ? 'text-red-500' : 'text-slate-500'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-900 text-sm truncate">{vaccine.vaccineName}</h4>
+                        <p className="text-xs text-slate-500 mt-1">Recommended age: {vaccine.recommendedAge}</p>
+                      </div>
+                      <Badge variant={isPast ? 'destructive' : 'secondary'} className={`shrink-0 ${!isPast ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : ''}`}>
+                        {isPast ? 'Overdue' : dueDays === 0 ? 'Today' : `${dueDays} days`}
+                      </Badge>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-slate-900 text-sm truncate">{vaccine.vaccineName}</h4>
-                      <p className="text-xs text-slate-500 mt-1">Recommended age: {vaccine.recommendedAge}</p>
-                    </div>
-                    <Badge variant={isPast ? 'destructive' : 'secondary'} className={`shrink-0 ${!isPast ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : ''}`}>
-                      {isPast ? 'Overdue' : dueDays === 0 ? 'Today' : `${dueDays} days`}
-                    </Badge>
-                  </div>
-                </Card>
-              );
-            })}
+                  </Card>
+                );
+              })}
 
-          {vaccinationSchedule.filter(v => !administeredNames.has(v.vaccineName)).length === 0 && (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-slate-500 text-sm">No upcoming vaccines scheduled</p>
-            </div>
-          )}
+            {vaccinationSchedule.filter(v => !administeredNames.has(v.vaccineName)).length === 0 && (
+              <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-slate-500 text-sm">No upcoming vaccines scheduled</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
