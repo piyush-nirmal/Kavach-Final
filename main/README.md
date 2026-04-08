@@ -1,96 +1,137 @@
-# 🛡️ Kavach - Child Immunization & Healthcare Platform
+# 🛡️ Kavach — Child Immunization & Healthcare Platform
 
-Kavach is a comprehensive, mobile-first web application designed to bridge the gap between parents and healthcare providers in managing child immunization and early childhood healthcare. It ensures that no child misses a vaccine by providing an easy-to-use digital health tracking system.
+<div align="center">
 
-## 🚀 Technical Stack
+![Kavach Banner](https://img.shields.io/badge/Kavach-Child%20Healthcare%20Platform-blue?style=for-the-badge&logo=react)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
+![Firebase](https://img.shields.io/badge/Firebase-Backend-FFCA28?style=for-the-badge&logo=firebase)
+![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=for-the-badge&logo=pwa)
 
-Kavach is built with modern, scalable, and performant technologies:
+**A comprehensive, mobile-first web application bridging the gap between parents and healthcare providers in managing child immunization and early childhood healthcare.**
 
-*   **Frontend Framework**: [React 18](https://react.dev/) + [Vite](https://vitejs.dev/) (for lightning-fast builds and HMR)
-*   **Language**: [TypeScript](https://www.typescriptlang.org/) (for type safety and better developer experience)
-*   **Routing**: [React Router v6](https://reactrouter.com/) (handling protected and role-based routes)
-*   **Styling**: [Tailwind CSS](https://tailwindcss.com/) (utility-first CSS framework for rapid UI development)
-*   **UI Components**: [Shadcn UI](https://ui.shadcn.com/) (Radix UI primitives tailored with Tailwind)
-*   **State Management**: React Context API & Local State
-*   **Icons**: [Lucide React](https://lucide.dev/)
-*   **Backend & Cloud Services (BaaS)**: [Firebase](https://firebase.google.com/)
-    *   **Authentication**: Firebase Auth (Email/Password log-in with Role-Based Access Control)
-    *   **Database**: Cloud Firestore (NoSQL database for storing user, child, and medical records)
-    *   **Storage**: Firebase Storage (For uploading birth certificates and prescription images)
-*   **Progressive Web App (PWA)**: Using `vite-plugin-pwa` to allow users to install the app on their home screen like a native app.
+</div>
 
-## 👪 Features for Parents / Guardians
+---
 
-The app empowers parents to stay on top of their child's health with minimal effort.
+## 📖 About The Project
 
-1.  **Child Registration**: Easy onboarding of multiple children including their Date of Birth, Gender, and uploading digital birth certificates.
-2.  **Vaccination Tracker**: 
-    *   View a complete chronological list of required vaccines based on the National Immunization Schedule.
-    *   Visual indicators for vaccines that are "Completed", "Pending", "Due Soon", and "Overdue".
-3.  **Upcoming Appointments**: Instantly see upcoming scheduled checkups right on the home dashboard.
-4.  **Clinical Notes & History**: View past doctor visits, diagnoses, and digital prescriptions assigned to their children.
-5.  **Vaccination Centers**: Locate nearby authorized vaccination centers using an integrated map/list view.
-6.  **Smart Notifications**: Push notification simulation for upcoming vaccine due dates and scheduled appointments.
-7.  **Profile Management**: Manage communication preferences, privacy settings, and contact information.
+**Kavach** (meaning *Shield* in Hindi) is built with a singular mission: **ensure no child misses a vaccine**. The platform provides a unified digital health tracking system for parents and a streamlined clinical workflow for healthcare providers — all in one secure, real-time application.
 
-## 👩‍⚕️ Features for Healthcare Providers (Doctors/Nurses)
+### The Problem
+- Parents often lose physical vaccination cards or forget upcoming due dates.
+- Healthcare providers lack a lightweight, accessible tool to log visits and track patient immunization history.
+- There's no centralized platform linking parents and providers for real-time record updates.
 
-The Doctor Portal provides an efficient clinical workflow without the heavy overhead of traditional Electronic Health Records (EHR).
+### The Solution
+Kavach creates a seamless digital bridge — parents manage their children's health records, and doctors update them in real-time after every visit, all backed by Firebase's secure cloud infrastructure.
 
-1.  **Patient Lookup**: Quick search functionality to find parent records using their registered Email or Phone Number.
-2.  **Family View**: Quickly see all children associated with a parent's profile.
-3.  **Administer Vaccines**:
-    *   Write access to mark pending vaccines as "Administered".
-    *   Collect crucial data such as the administration date, location, and the **Manufacturer Batch/Lot Number** for safety tracking.
-4.  **Clinical Consultation Logs**:
-    *   Log detailed visit notes (e.g., reason for visit, weight, height, diagnosis).
-    *   Upload images of physical, handwritten prescriptions to the child's secure digital vault.
-5.  **Schedule Follow-ups**: Instantly schedule the child's next appointment/vaccination directly from the clinical view, which automatically syncs to the parent's dashboard.
-6.  **Provider Analytics Dashboard**: Visual summary of daily scheduled appointments and weekly vaccines administered.
-7.  **Broadcast Alerts**: Capability to send a bulk push notification to all linked patients (e.g., "Flu shots are now available at our clinic!").
+---
 
-## 🔒 Security & Data Privacy
+## ✨ Key Features
 
-*   **Role-Based Access Control (RBAC)**: Secure routing ensures that Parents cannot access the Provider Portal, and vice versa.
-*   **Firestore Rules**: Database reads/writes are strictly protected requiring an authenticated user session.
-*   **Immutable Core Data**: Once key authentication metrics (like Email) are set, they are locked from basic form editing to prevent account hijacking.
+### 👪 For Parents & Guardians
+| Feature | Description |
+|---|---|
+| 📋 **Child Registration** | Register multiple children with DOB, gender, and digital birth certificates |
+| 💉 **Vaccination Tracker** | Full National Immunization Schedule with status: Completed, Pending, Due Soon, Overdue |
+| 📅 **Upcoming Appointments** | Dashboard view of all scheduled checkups and vaccine visits |
+| 🗂️ **Doctor Visit History** | View clinical notes, diagnoses, and digital prescriptions |
+| 🗺️ **Vaccination Centers** | Locate nearby authorized vaccination centers |
+| 🔔 **Smart Notifications** | Push notifications for upcoming vaccine due dates and scheduled appointments |
+| 👤 **Profile Management** | Manage contact info, communication preferences, and privacy settings |
 
-## 🛠️ Project Structure
+### 👩‍⚕️ For Healthcare Providers
+| Feature | Description |
+|---|---|
+| 🔍 **Patient Lookup** | Search parent records by email or phone number |
+| 👨‍👩‍👧 **Family View** | View all children linked to a parent's profile |
+| ✅ **Administer Vaccines** | Mark vaccines as administered with batch/lot number, date, and location |
+| 📝 **Clinical Notes** | Log visit details (weight, height, diagnosis) and upload prescription images |
+| 🗓️ **Schedule Follow-ups** | Book next appointments that auto-sync to parent's dashboard |
+| 📊 **Analytics Dashboard** | Visual stats on daily appointments and weekly vaccines administered |
+| 📢 **Broadcast Alerts** | Send bulk push notifications to all linked patients |
 
-```text
-src/
-├── components/       # Reusable UI components (buttons, cards, layout, navigation)
-│   ├── layout/       # AppHeader, MobileNav, Layout Wrappers
-│   └── ui/           # Shadcn base components
-├── contexts/         # React Contexts (e.g., AuthContext for global user state)
-├── data/             # Static or mock data (e.g., standard vaccination schedules)
-├── hooks/            # Custom React hooks (e.g., useToast)
-├── lib/              # Utility functions and tool configurations (Firebase config)
-├── pages/            # Main application views/pages
-│   └── auth/         # Login, Signup, Role Selection screens
-└── types/            # TypeScript interfaces and global type definitions
+### 🔐 For Super Admins
+- Full system oversight dashboard
+- User and provider management
+- Platform-wide metrics and reporting
+
+---
+
+## 🚀 Tech Stack
+
+| Category | Technology |
+|---|---|
+| **Frontend** | React 18 + Vite |
+| **Language** | TypeScript 5 |
+| **Routing** | React Router v6 |
+| **Styling** | Tailwind CSS v3 |
+| **UI Components** | Shadcn UI (Radix UI + Tailwind) |
+| **State Management** | React Context API |
+| **Icons** | Lucide React |
+| **Authentication** | Firebase Auth (Email/Password + RBAC) |
+| **Database** | Cloud Firestore (NoSQL) |
+| **Storage** | Firebase Storage (birth certs, prescriptions) |
+| **Mobile** | Capacitor (Android native wrapper) |
+| **PWA** | vite-plugin-pwa (installable on home screen) |
+| **Forms** | React Hook Form + Zod validation |
+
+---
+
+## 🔒 Security & Privacy
+
+- **Role-Based Access Control (RBAC)** — Parents cannot access the Provider Portal, and vice versa. Routes are protected at the router level.
+- **Firestore Security Rules** — All database reads/writes require an authenticated user session.
+- **Immutable Core Data** — Critical fields like email are locked post-registration to prevent account hijacking.
+- **Sensitive Data Excluded** — `.env` files with Firebase credentials are never committed to the repository.
+
+---
+
+## 🗂️ Project Structure
+
+```
+main/
+├── src/
+│   ├── components/         # Reusable UI components
+│   │   ├── layout/         # AppHeader, MobileNav, Layout Wrappers
+│   │   └── ui/             # Shadcn base components
+│   ├── contexts/           # React Contexts (AuthContext, etc.)
+│   ├── data/               # Static data (vaccination schedules)
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/                # Firebase config & utility functions
+│   ├── pages/              # Application views
+│   │   └── auth/           # Login, Signup, Role Selection
+│   └── types/              # TypeScript interfaces
+├── android/                # Capacitor Android project
+├── functions/              # Firebase Cloud Functions
+├── public/                 # Static assets & PWA icons
+├── .env                    # 🚫 Not committed — see setup below
+└── package.json
 ```
 
-## 💻 Getting Started (Local Development)
+---
 
-To run this project locally, follow these steps:
+## 💻 Getting Started
 
-### 1. Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+### Prerequisites
+- [Node.js](https://nodejs.org/) v18 or higher
+- A [Firebase](https://firebase.google.com/) project with Firestore, Auth, and Storage enabled
 
-### 2. Clone the Repository
+### 1. Clone the Repository
 ```bash
-git clone <your-repository-url>
-cd frontend/frontend
+git clone https://github.com/piyush-nirmal/Kavach-Final.git
+cd Kavach-Final/main
 ```
 
-### 3. Install Dependencies
+### 2. Install Dependencies
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
-### 4. Setup Firebase Environment Variables
-Create a `.env` file in the root of your frontend directory and add your Firebase configuration:
+### 3. Configure Firebase Environment Variables
+Create a `.env` file inside the `main/` directory:
 ```env
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
@@ -101,8 +142,53 @@ VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
-### 5. Start the Development Server
+### 4. Start the Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### 5. Build for Production
+```bash
+npm run build
+```
+
+---
+
+## 📱 PWA & Mobile
+
+Kavach is a **Progressive Web App** — users can install it on their phone's home screen for a native-like experience.
+
+For Android development via Capacitor:
+```bash
+npm run build && npx cap sync android
+```
+Then open the `android/` folder in Android Studio.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue first to discuss any major changes.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<div align="center">
+
+Made with ❤️ to protect every child's health
+
+**Kavach** — Because every vaccine matters.
+
+</div>
