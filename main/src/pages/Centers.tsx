@@ -1,23 +1,90 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { GlowCard } from '@/components/ui/GlowCard';
-import { MapPin, Phone, Navigation, Search, Locate, Building2, Loader2, Star, Clock } from 'lucide-react';
+import {
+  MapPin, Phone, Navigation, Search, Locate,
+  Building2, Loader2, Star, Clock
+} from 'lucide-react';
 import { VaccinationCenter } from '@/types';
-import GoogleMapComponent from '@/components/map/GoogleMap';
+import LeafletMap from '@/components/map/LeafletMap';
 import { Geolocation } from '@capacitor/geolocation';
+import L from 'leaflet';
 
+// ─── Overpass API helper ──────────────────────────────────────────────────────
+async function fetchNearbyCenters(lat: number, lng: number, radiusMeters = 5000): Promise<VaccinationCenter[]> {
+  // Query hospitals, clinics, doctors, pharmacies within radius
+  const query = `
+    [out:json][timeout:25];
+    (
+      node["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="clinic"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="doctors"](around:${radiusMeters},${lat},${lng});
+      node["amenity"="pharmacy"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
+      way["amenity"="clinic"](around:${radiusMeters},${lat},${lng});
+    );
+    out center;
+  `;
+
+  const response = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    body: query,
+  });
+
+  if (!response.ok) throw new Error('Overpass API request failed');
+
+  const data = await response.json();
+
+  return (data.elements as any[])
+    .filter((el) => el.tags?.name) // only named places
+    .map((el) => {
+      const elLat = el.lat ?? el.center?.lat ?? 0;
+      const elLng = el.lon ?? el.center?.lon ?? 0;
+      const distKm = getDistanceKm(lat, lng, elLat, elLng);
+      return {
+        id: String(el.id),
+        name: el.tags.name,
+        address: [
+          el.tags['addr:housenumber'],
+          el.tags['addr:street'],
+          el.tags['addr:city'] || el.tags['addr:suburb'],
+        ]
+          .filter(Boolean)
+          .join(', ') || 'Address not available',
+        phone: el.tags.phone || el.tags['contact:phone'] || 'Not available',
+        latitude: elLat,
+        longitude: elLng,
+        distance: `${distKm.toFixed(1)} km`,
+      } as VaccinationCenter & { distance: string };
+    })
+    .sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
+}
+
+function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Centers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
-  const [centers, setCenters] = useState<VaccinationCenter[]>([]);
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const [centers, setCenters] = useState<(VaccinationCenter & { distance?: string })[]>([]);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
-  // Search logic for local filtering
   const filteredCenters = centers.filter(
     (center) =>
       center.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -37,63 +104,40 @@ export default function Centers() {
 
   const findNearbyCenters = async () => {
     setIsLoadingLocation(true);
+    setErrorMessage('');
 
     try {
-      // Use Capacitor Geolocation instead of web navigator.geolocation
-      // This correctly handles native permissions prompt gracefully
       const position = await Geolocation.getCurrentPosition();
-
       const { latitude, longitude } = position.coords;
-      const userLocation = new google.maps.LatLng(latitude, longitude);
 
-      if (mapInstance) {
-        mapInstance.panTo(userLocation);
-        mapInstance.setZoom(14);
+      setUserLocation({ lat: latitude, lng: longitude });
 
-        const service = new google.maps.places.PlacesService(mapInstance);
-
-        const request = {
-          location: userLocation,
-          radius: 5000,
-          keyword: 'hospital' // search for hospitals/vaccination centers
-        };
-
-        service.nearbySearch(request, (results, status) => {
-          setIsLoadingLocation(false);
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            const mappedResults = results.map((place) => ({
-              id: place.place_id || Math.random().toString(),
-              name: place.name || 'Unknown Center',
-              address: place.vicinity || 'Address not available',
-              phone: 'Contact via Maps', // API doesn't return phone in basic search
-              latitude: place.geometry?.location?.lat() || 0,
-              longitude: place.geometry?.location?.lng() || 0,
-              distance: 'Nearby' // We could calculate real distance here
-            }));
-            setCenters(mappedResults);
-          } else {
-            console.error("Places API failed:", status);
-          }
-        });
-      } else {
-        setIsLoadingLocation(false);
+      // Pan map to user location
+      if (mapRef.current) {
+        mapRef.current.setView([latitude, longitude], 14);
       }
+
+      const results = await fetchNearbyCenters(latitude, longitude, 5000);
+
+      if (results.length === 0) {
+        setErrorMessage('No centers found within 5km. Try a larger area.');
+      }
+
+      setCenters(results);
     } catch (error: any) {
-      console.error("Error getting location:", error);
-      setIsLoadingLocation(false);
-
-      let errorMessage = "Unable to retrieve your location.";
       const errStr = String(error).toLowerCase();
-
       if (errStr.includes('permission')) {
-        errorMessage = "Location permission was denied. Please allow location access in your device settings to find nearby centers.";
+        setErrorMessage('Location permission was denied. Please allow location access in your device settings.');
       } else if (errStr.includes('unavailable')) {
-        errorMessage = "Location information is unavailable. Please check if your GPS is enabled.";
+        setErrorMessage('Location information is unavailable. Please check if your GPS is enabled.');
       } else if (errStr.includes('timeout')) {
-        errorMessage = "The request to get your location timed out. Please try again.";
+        setErrorMessage('Location request timed out. Please try again.');
+      } else {
+        setErrorMessage('Unable to retrieve nearby centers. Please try again.');
       }
-
-      alert(errorMessage);
+      console.error('Error finding nearby centers:', error);
+    } finally {
+      setIsLoadingLocation(false);
     }
   };
 
@@ -103,7 +147,7 @@ export default function Centers() {
       <div className="animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-bold text-gradient-hero bg-clip-text text-transparent bg-gradient-to-r from-violet-600 via-purple-600 to-cyan-600">
+            <h1 className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 via-purple-600 to-cyan-600">
               Find Centers
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -130,6 +174,13 @@ export default function Centers() {
         </div>
       </div>
 
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm animate-fade-in">
+          {errorMessage}
+        </div>
+      )}
+
       {/* Search */}
       <div className="animate-slide-up delay-100">
         <div className="relative group">
@@ -146,20 +197,21 @@ export default function Centers() {
       {/* Map */}
       <Card className="h-72 overflow-hidden relative rounded-2xl border-0 shadow-card animate-slide-up delay-200">
         <div className="absolute inset-0">
-          <GoogleMapComponent
-            markers={filteredCenters.map(c => ({
+          <LeafletMap
+            markers={filteredCenters.map((c) => ({
               id: c.id,
               lat: c.latitude,
               lng: c.longitude,
-              title: c.name
+              title: c.name,
             }))}
+            center={userLocation ?? { lat: 20.5937, lng: 78.9629 }}
+            zoom={userLocation ? 13 : 5}
             onMarkerClick={(id) => setSelectedCenter(String(id))}
-            onMapLoad={setMapInstance}
+            onMapLoad={(map) => { mapRef.current = map; }}
           />
         </div>
-
         {/* Map Overlay Gradient */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/60 to-transparent pointer-events-none" />
       </Card>
 
       {/* Centers List */}
@@ -203,8 +255,8 @@ export default function Centers() {
             {filteredCenters.map((center, index) => (
               <GlowCard
                 key={center.id}
-                glowColor={selectedCenter === center.id ? 'primary' : 'primary'}
-                className={`animate-slide-up`}
+                glowColor="primary"
+                className="animate-slide-up"
                 hover={true}
                 onClick={() => setSelectedCenter(selectedCenter === center.id ? null : center.id)}
               >
@@ -219,10 +271,12 @@ export default function Centers() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-semibold text-foreground text-base">{center.name}</h4>
-                        <Badge variant="outline" className="text-xs flex-shrink-0 bg-emerald-50 text-emerald-600 border-emerald-200">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {center.distance}
-                        </Badge>
+                        {(center as any).distance && (
+                          <Badge variant="outline" className="text-xs flex-shrink-0 bg-emerald-50 text-emerald-600 border-emerald-200">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {(center as any).distance}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 mt-2 text-muted-foreground">
@@ -235,7 +289,7 @@ export default function Centers() {
                         <p className="text-sm">{center.phone}</p>
                       </div>
 
-                      {/* Rating (placeholder) */}
+                      {/* Rating */}
                       <div className="flex items-center gap-1 mt-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
@@ -246,7 +300,7 @@ export default function Centers() {
                         <span className="text-xs text-muted-foreground ml-1">4.0</span>
                       </div>
 
-                      {/* Action Buttons - Expanded */}
+                      {/* Action Buttons */}
                       {selectedCenter === center.id && (
                         <div className="flex gap-2 mt-4 animate-slide-up">
                           <Button
