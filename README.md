@@ -111,7 +111,7 @@ main/
 └── package.json
 ```
 
----
+--
 
 ## 💻 Getting Started
 
