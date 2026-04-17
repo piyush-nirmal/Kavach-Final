@@ -128,7 +128,7 @@ cd Kavach-Final/main
 ### 2. Install Dependencies
 ```bash
 npm install --legacy-peer-deps
-```
+``
 
 ### 3. Configure Firebase Environment Variables
 Create a `.env` file inside the `main/` directory:
