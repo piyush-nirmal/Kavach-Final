@@ -27,7 +27,7 @@
 ### The Solution
 Kavach creates a seamless digital bridge — parents manage their children's health records, and doctors update them in real-time after every visit, all backed by Firebase's secure cloud infrastructure.
 
----
+--
 
 ## ✨ Key Features
 
